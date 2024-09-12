@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.special import softmax, logsumexp
-
+import torch
+import torch.nn.functional as F
 def GMM_density(mus, sigma, x):
     """
     :param mus: ndarray of mu, shape [Nbranch, Ndim]
@@ -44,6 +45,15 @@ def GMM_scores(mus, sigma, x):
     dist2 = np.sum(res ** 2, axis=-1)  # [x batch, mu]
     participance = softmax(- dist2 / sigma2 / 2, axis=1)  # [x batch, mu]
     scores = - np.einsum("ij,ijk->ik", participance, res) / sigma2   # [x batch, space dim]
+    return scores
+
+
+def GMM_scores_torch(mus, sigma, x):
+    sigma2 = sigma**2
+    res = x[:, None, :] - mus[None, :, :]  # [x batch, mu, space dim]
+    dist2 = torch.sum(res ** 2, dim=-1)  # [x batch, mu]
+    participance = F.softmax(- dist2 / sigma2 / 2, dim=1)  # [x batch, mu]
+    scores = - torch.einsum("ij,ijk->ik", participance, res) / sigma2  # [x batch, space dim]
     return scores
 
 
